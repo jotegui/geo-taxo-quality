@@ -64,6 +64,3 @@ end;
 $BODY$
 	language plpgsql stable
 	cost 100;
-alter function public.rangemap_inside_distance(bigint)
-	owner to javiero;
-comment on function public.rangemap_inside_distance(bigint) is '';

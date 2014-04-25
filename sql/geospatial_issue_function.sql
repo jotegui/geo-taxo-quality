@@ -19,7 +19,7 @@
 -- 
 -- 
 
-DROP FUNCTION public.geospatial_issue(double precision, double precision, text, geometry);
+DROP FUNCTION IF EXISTS public.geospatial_issue(double precision, double precision, text, geometry);
 
 CREATE OR REPLACE FUNCTION geospatial_issue
 (
@@ -225,5 +225,3 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100
   ;
-ALTER FUNCTION public.geospatial_issue(double precision, double precision, text, geometry)
-  OWNER TO javiero;

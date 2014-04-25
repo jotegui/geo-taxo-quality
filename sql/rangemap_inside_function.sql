@@ -19,7 +19,7 @@
 -- 
 -- 
 
-DROP FUNCTION public.rangemap_inside(integer, geometry);
+DROP FUNCTION IF EXISTS public.rangemap_inside(integer, geometry);
 
 CREATE OR REPLACE FUNCTION public.rangemap_inside
 (
@@ -202,6 +202,3 @@ end;
 $BODY$
   LANGUAGE plpgsql STABLE
   COST 100;
-ALTER FUNCTION public.rangemap_inside(integer, geometry)
-  OWNER TO javiero;
-COMMENT ON FUNCTION public.rangemap_inside(integer, geometry) IS 'Function to check if a point falls inside the rangemap of the species it belongs to.';

@@ -75,6 +75,3 @@ end;
 $BODY$
 	language plpgsql stable
 	cost 100;
-alter function public.geospatial_rangemap_issue(bigint)
-	owner to javiero;
-comment on function public.geospatial_rangemap_issue(bigint) is '';

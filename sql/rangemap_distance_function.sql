@@ -18,7 +18,7 @@
 -- 
 -- 
 
-DROP FUNCTION public.rangemap_distance(integer, geometry);
+DROP FUNCTION IF EXISTS public.rangemap_distance(integer, geometry);
 
 CREATE OR REPLACE FUNCTION public.rangemap_distance
 (
@@ -191,6 +191,3 @@ end;
 $BODY$
   LANGUAGE plpgsql STABLE
   COST 100;
-ALTER FUNCTION public.rangemap_distance_2_fix(bigint, integer, geometry)
-  OWNER TO javiero;
-COMMENT ON FUNCTION public.rangemap_distance_2_fix(bigint, integer, geometry) IS 'Second part of the range map distance calculation.';
