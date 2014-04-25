@@ -3,7 +3,7 @@
 -- DROP FUNCTION public.jot_get_tile_beta(text, text);
 
 CREATE OR REPLACE FUNCTION public.jot_get_tile_beta(IN text, IN text)
-  RETURNS TABLE(cartodb_id integer, seasonality integer, presence integer, country_code text, the_geom_webmercator geometry) AS
+  RETURNS TABLE(cartodb_id integer, seasonality integer, presence integer, the_geom_webmercator geometry, country_code text) AS
 $BODY$
 
   DECLARE sql TEXT;
