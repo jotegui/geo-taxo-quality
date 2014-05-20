@@ -3,9 +3,9 @@
 -- 
 -- author: Javier Otegui (javier.otegui@gmail.com)
 
-drop type if exists geoissue;
+drop type if exists geotaxoissue;
 
-create type geoissue as (
+create type geotaxoissue as (
 	noCoordinates boolean,
 	noCountry boolean,
 	isZero boolean,

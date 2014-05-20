@@ -3,9 +3,9 @@
 -- 
 -- author: Javier Otegui (javier.otegui@gmail.com)
 
-drop type if exists geoissue;
+drop type if exists geospatialissue;
 
-create type geoissue as (
+create type geospatialissue as (
 	noCoordinates boolean,
 	noCountry boolean,
 	isZero boolean,
@@ -15,6 +15,5 @@ create type geoissue as (
 	isTransposed boolean,
 	isNegatedLatitude boolean,
 	isNegatedLongitude boolean,
-	distance2country double precision,
-	distance2rangemap double precision
+	distance2country double precision
 );

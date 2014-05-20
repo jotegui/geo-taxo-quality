@@ -18,11 +18,92 @@
 -- 
 -- 
 
-DROP FUNCTION IF EXISTS public.rangemap_distance(integer, geometry);
+DROP FUNCTION IF EXISTS public.rangemap_distance(text, geometry); -- Main function: scientific name and point geometry
+DROP FUNCTION IF EXISTS public.rangemap_distance(geometry, text); -- First overload: point geometry and scientific name
+DROP FUNCTION IF EXISTS public.rangemap_distance(text, double precision, double precision); -- second overload: scientific name and coordinates
+DROP FUNCTION IF EXISTS public.rangemap_distance(double precision, double precision, text); -- third overload: coordinates and scientific name
+
+-------------------------------------------------------------------
+-- first overload
 
 CREATE OR REPLACE FUNCTION public.rangemap_distance
 (
-	IN p_taxonid integer,
+	IN p_geom geometry(Point, 4326),
+	IN p_sciname text,
+	OUT distance double precision
+)
+
+AS
+
+$BODY$
+
+BEGIN
+
+    select into distance dist from (select rangemap_distance(p_sciname, p_geom) as dist) as foo;
+
+end;
+$BODY$
+  LANGUAGE plpgsql STABLE
+  COST 100;
+
+-------------------------------------------------------------------
+-- second overload
+
+CREATE OR REPLACE FUNCTION public.rangemap_distance
+(
+	IN p_sciname text,
+	IN lat double precision,
+	IN lon double precision,
+	OUT distance double precision
+)
+
+AS
+
+$BODY$
+
+DECLARE
+    p_geom geometry(Point, 4326);
+
+BEGIN
+
+    select into p_geom pointval from (select ST_SetSRID(ST_Point(lon, lat), 4326) as pointval) as foo;
+    select into distance dist from (select rangemap_distance(p_sciname, p_geom) as dist) as foo;
+
+end;
+$BODY$
+  LANGUAGE plpgsql STABLE
+  COST 100;
+
+-------------------------------------------------------------------
+-- third overload
+
+CREATE OR REPLACE FUNCTION public.rangemap_distance
+(
+	IN lat double precision,
+	IN lon double precision,
+	IN p_sciname text,
+	OUT distance double precision
+)
+
+AS
+
+$BODY$
+
+BEGIN
+
+    select into distance dist from (select rangemap_distance(p_sciname, lat, lon) as dist) as foo;
+
+end;
+$BODY$
+  LANGUAGE plpgsql STABLE
+  COST 100;
+
+-------------------------------------------------------------------
+-- main function
+
+CREATE OR REPLACE FUNCTION public.rangemap_distance
+(
+	IN p_sciname text,
 	IN p_geom geometry(Point, 4326),
 	OUT dist double precision
 )
@@ -35,7 +116,6 @@ DECLARE
 
 	noTaxonid boolean := false;
 	noGeom boolean := false;
-	p_sciname text := Null; -- Scientific name of the record
 	p_class text := Null; -- Class associated to the p_sciname
 	v_sciname text := null; -- "Valid" scientific name, extracted from Meyer's synonymy table
 	v_class text := null; -- Class associated to the v_sciname
@@ -47,7 +127,7 @@ DECLARE
 BEGIN
 
 	-- Check if taxonid exists
-	if p_taxonid is null then
+	if p_sciname is null then
 		noTaxonid = True;
 	end if;
 	-- Check if the_geom exists
@@ -63,15 +143,14 @@ BEGIN
 	if noTaxonid is false and noGeom is false then
 
 		-- extract scientific name and class
-		select into p_sciname scientificname from (select scientificname from gbif_import_taxonomy where taxonid=p_taxonid) as foo;
-		select into p_class class from (select class from gbif_import_taxonomy where taxonid=p_taxonid) as foo;
+		select into p_class class from (select class_ as class from gbif_taxonomy where upper(binomial)=upper(p_sciname)) as foo;
 
 		-- check if scientific name exists
 		if p_sciname is not null then
 
 			-- extract valid scientific name and class from synonymy table
-			select into v_sciname mol_scientificname from (select mol_scientificname from synonyms_carsten_n10 where upper(scientificname) = upper(p_sciname)) as foo;
-			select into v_class class from (select class from gbif_import_taxonomy where upper(scientificname) = upper(v_sciname)) as foo;
+			select into v_sciname mol_scientificname from (select mol_scientificname from synonyms where upper(scientificname) = upper(p_sciname)) as foo;
+			select into v_class class from (select class_ as class from gbif_taxonomy where upper(binomial) = upper(v_sciname)) as foo;
 	
 			-- Build the p_iucntable and p_iucnfield variables based on p_class and v_class
 			-- If class is not among IUCN tables, avoid calculation
@@ -80,13 +159,13 @@ BEGIN
 					p_iucntable = 'iucn_amphibians';
 					p_iucnfield = 'binomial';
 				elsif p_class = 'Aves' then
-					p_iucntable = 'iucn_species2011_birds';
+					p_iucntable = 'iucn_birds';
 					p_iucnfield = 'binomial';
 				elsif p_class = 'Mammalia' then
 					p_iucntable = 'iucn_mammals';
 					p_iucnfield = 'binomial';
 				elsif p_class = 'Reptilia' then
-					p_iucntable = 'iucn_species2011_reptiles';
+					p_iucntable = 'iucn_reptiles';
 					p_iucnfield = 'binomial';
 				elsif p_class = 'Holocephali' then
 					p_iucntable = 'iucn_species2011_fish';
@@ -109,13 +188,13 @@ BEGIN
 					p_iucntable = 'iucn_amphibians';
 					p_iucnfield = 'binomial';
 				elsif v_class = 'Aves' then
-					p_iucntable = 'iucn_species2011_birds';
+					p_iucntable = 'iucn_birds';
 					p_iucnfield = 'binomial';
 				elsif v_class = 'Mammalia' then
 					p_iucntable = 'iucn_mammals';
 					p_iucnfield = 'binomial';
 				elsif v_class = 'Reptilia' then
-					p_iucntable = 'iucn_species2011_reptiles';
+					p_iucntable = 'iucn_reptiles';
 					p_iucnfield = 'binomial';
 				elsif v_class = 'Holocephali' then
 					p_iucntable = 'iucn_species2011_fish';

@@ -20,11 +20,93 @@
 -- 
 -- 
 
-drop function if exists public.rangemap_inside_distance(bigint);
+DROP FUNCTION IF EXISTS public.rangemap_inside_distance(text, geometry); -- Main function: scientific name and point geometry
+DROP FUNCTION IF EXISTS public.rangemap_inside_distance(geometry, text); -- First overload: point geometry and scientific name
+DROP FUNCTION IF EXISTS public.rangemap_inside_distance(text, double precision, double precision); -- second overload: scientific name and coordinates
+DROP FUNCTION IF EXISTS public.rangemap_inside_distance(double precision, double precision, text); -- third overload: coordinates and scientific name
+
+-------------------------------------------------------------------
+-- first overload
+
+CREATE OR REPLACE FUNCTION public.rangemap_inside_distance
+(
+	IN p_geom geometry(Point, 4326),
+	IN p_sciname text,
+	OUT distance double precision
+)
+
+AS
+
+$BODY$
+
+BEGIN
+
+    select into distance dist from (select rangemap_inside_distance(p_sciname, p_geom) as dist) as foo;
+
+end;
+$BODY$
+  LANGUAGE plpgsql STABLE
+  COST 100;
+
+-------------------------------------------------------------------
+-- second overload
+
+CREATE OR REPLACE FUNCTION public.rangemap_inside_distance
+(
+	IN p_sciname text,
+	IN lat double precision,
+	IN lon double precision,
+	OUT distance double precision
+)
+
+AS
+
+$BODY$
+
+DECLARE
+    p_geom geometry(Point, 4326);
+
+BEGIN
+
+    select into p_geom pointval from (select ST_SetSRID(ST_Point(lon, lat), 4326) as pointval) as foo;
+    select into distance dist from (select rangemap_inside_distance(p_sciname, p_geom) as dist) as foo;
+
+end;
+$BODY$
+  LANGUAGE plpgsql STABLE
+  COST 100;
+
+-------------------------------------------------------------------
+-- third overload
+
+CREATE OR REPLACE FUNCTION public.rangemap_inside_distance
+(
+	IN lat double precision,
+	IN lon double precision,
+	IN p_sciname text,
+	OUT distance double precision
+)
+
+AS
+
+$BODY$
+
+BEGIN
+
+    select into distance dist from (select rangemap_inside_distance(p_sciname, lat, lon) as dist) as foo;
+
+end;
+$BODY$
+  LANGUAGE plpgsql STABLE
+  COST 100;
+
+-------------------------------------------------------------------
+-- Main function
 
 create or replace function public.rangemap_inside_distance
 (
-	in p_id bigint,
+	in p_sciname text,
+	in p_geom geometry(Point, 4326),
 	out dist double precision
 )
 
@@ -34,19 +116,13 @@ $BODY$
 
 DECLARE
 
-	p_geom geometry(Point,4326) := null;
-	p_taxonid integer := null;
 	is_inside boolean := null;
 
 BEGIN
 
-	-- check if point has geom and store
-	select into p_geom geom from (select the_geom as geom from gbif_import where occurrenceid=p_id) as foo;
 	if p_geom is not null then
-		-- store taxonid
-		select into p_taxonid taxonid from (select taxonid from gbif_import where occurrenceid=p_id) as foo;
 		-- check if point falls inside rangemap
-		select into is_inside ins from (select rangemap_inside(p_taxonid, p_geom) as ins) as foo;
+		select into is_inside ins from (select rangemap_inside(p_sciname, p_geom) as ins) as foo;
 		-- If rangemap_inside is null, we won't be able to calculate distance
 		if is_inside is null then
 			dist = null;
@@ -55,7 +131,7 @@ BEGIN
 			dist = 0;
 		-- If rangemap_inside is false, we have to calculate distance
 		else
-			select into dist distance from (select rangemap_distance(p_taxonid, p_geom) as distance) as foo;
+			select into dist distance from (select rangemap_distance(p_sciname, p_geom) as distance) as foo;
 		end if;
 	end if;
 
